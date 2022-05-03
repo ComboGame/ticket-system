@@ -1,7 +1,7 @@
 {
   "env": {
-    "TOKEN": "",
-    "PREFIX": "",
+    "TOKEN": "OTcxMDMzMDEyODk0NTg0OTEy.YnEm9w.H_JLgYhR1ewD-BS0_WXqLdGp0MQ",
+    "PREFIX": "*",
     "MongoDB_TOKEN": ""
   },
   "ticket_category": {
