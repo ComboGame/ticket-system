@@ -1,81 +1,31 @@
-require('dotenv').config();
-const config = require('./botconfig/config.json');
-const ee = require('./botconfig/embed.json');
-const {
-    Client,
-    Collection,
-    Intents,
-    MessageActionRow,
-    MessageButton,
-    MessageEmbed,
-    MessageSelectMenu,
-} = require("discord.js");
-const colors = require("colors");
-const Enmap = require("enmap");
-const libsodium = require("libsodium-wrappers");
-const voice = require("@discordjs/voice");
+import * as dotenv from 'dotenv';
+dotenv.config();
 
-const client = new Client({
-    fetchAllMembers: false,
-    restTimeOffset: 0,
-    shards: 'auto',
-    allowedMentions: {
-        parse: ["roles", "users", "everyone"],
-        repliedUser: false,
-    },
-    partials: ["CHANNEL", "GUILD_MEMBER", "MESSAGE", "REACTION", "USER"],
-    intents: [
-        Intents.FLAGS.GUILDS,
-        Intents.FLAGS.GUILD_MEMBERS,
-        Intents.FLAGS.GUILD_BANS,
-        Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
-        Intents.FLAGS.GUILD_INTEGRATIONS,
-        Intents.FLAGS.GUILD_WEBHOOKS,
-        Intents.FLAGS.GUILD_INVITES,
-        Intents.FLAGS.GUILD_VOICE_STATES,
-        Intents.FLAGS.GUILD_PRESENCES,
-        Intents.FLAGS.GUILD_MESSAGES,
-        Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-        Intents.FLAGS.GUILD_MESSAGE_TYPING,
-        Intents.FLAGS.DIRECT_MESSAGES,
-        Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
-        Intents.FLAGS.DIRECT_MESSAGE_TYPING
-    ],
-    presence: {
-        activities: [{
-            name: `Ticket-System | discord.gg/milanio`,
-            type: "PLAYING",
-        }],
-        status: "online"
-    }
-});
+import { Client, Collection, Intents } from 'discord.js';
+import fs from 'fs';
+import {dirname, join} from 'path';
+import {fileURLToPath} from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+export {__dirname, join};
+
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_PRESENCES] });
 
 client.commands = new Collection();
-client.slashCommands = new Collection();
-client.events = new Collection();
-client.aliases = new Collection();
-client.cooldowns = new Collection();
-client.allEmojis = require("./botconfig/emojis.json");
-client.owners = ["850303341435027466"];
 
-client.setMaxListeners(0);
-require('events').defaultMaxListeners = 0;
+const functions = fs.readdirSync('./src/functions').filter(file => file.endsWith('.js'));
+const eventFiles = fs.readdirSync('./src/events').filter(file => file.endsWith('.js'));
+const commandGuildFolders = fs.readdirSync('./src/commands/guild');
+const commandGlobalFolders = fs.readdirSync('./src/commands/global');
 
-["extraEvents", "antiCrash", "eventHandler", "commandHandler"].forEach((handler) => {
-    require(`./handlers/${handler}`)(client);
-});
+(async () => {
+	for (const file of functions) {
+		(await  import(`./src/functions/${file}`)).default(client);
+	}
 
-require("./handlers/mongoDBHandler")(client);
-require("./modules/ticket-creation")(client);
+	client.handleEvents(eventFiles, './src/events');
+	client.handleGlobalCommands(commandGlobalFolders, './src/commands/global');
+	client.handleGuildCommands(commandGuildFolders, './src/commands/guild');
 
-client.login(config.env.TOKEN || process.env.TOKEN);
-
-/**********************************************************
- * @INFO
- * Bot Coded by Zedro#2742 | https://discord.gg/milanio
- * @INFO
- * Work for Milanio Development | https://discord.gg/milanio
- * @INFO
- * Please Mention Us Milanio Development, When Using This Code!
- * @INFO
- *********************************************************/
+	await client.login(process.env.TOKEN);
+})();
